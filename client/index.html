@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Client App</title>
+</head>
+<body>
+
+<h1>Hello</h1>
+
+<div id="app">
+  <user-list></user-list>
+</div>
+
+<script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
+<script>
+
+const AddUserForm = Vue.extend({
+  template: `
+    <form @submit.prevent="handleSubmit">
+      <input v-model="name" name="name" placeholder="Type the name" />
+      <button>Add</button>
+    </form>
+  `,
+
+  data: () => ({
+    name: ''
+  }),
+
+  methods: {
+    handleSubmit () {
+      const name = this.name
+      this.name = ''
+
+      fetch('http://localhost:4000/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: name
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          this.$emit('added', data.user)
+        })
+    }
+  }
+})
+
+const UserList = Vue.extend({
+  template: `
+    <div>
+      <AddUserForm @added="handleAddUser" />
+      <h3>User List</h3>
+      <div v-for="user in users" :key="user.id">
+        <p>{{ user.name }}</p>
+        <button @click="handleDelete(user.id)">
+          Delete
+        </button>
+      </div>
+    </div>
+  `,
+
+  components: {
+    AddUserForm,
+  },
+
+  data () {
+    return {
+      users: []
+    }
+  },
+
+  mounted () {
+    this.fetchUsers()
+  },
+
+  methods: {
+    handleAddUser (user) {
+      this.users.push(user)
+    },
+    handleDelete (userId) {
+        return fetch('http://localhost:4000/users/' + userId, {
+            method: 'DELETE'
+        })
+            .then(() => {
+                const idx = this.users.findIndex(user => user.id === userId)
+                this.users.splice(idx, 1)
+            })
+    },
+    fetchUsers () {
+      return fetch('http://localhost:4000/users')
+        .then(res => res.json())
+        .then(data => {
+            this.users = data.users;
+        })
+    }
+  }
+})
+
+new Vue({
+  el: '#app',
+
+  components: {
+    UserList,
+  },
+
+  data () {
+    return {
+        message: 'Hello world'
+    }
+  }
+})
+</script>
+</body>
+</html>
